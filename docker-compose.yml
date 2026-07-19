@@ -1,0 +1,40 @@
+services:
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: printer-go2rtc
+    restart: unless-stopped
+    ports:
+      - "1984:1984"        # go2rtc admin/debug UI, LAN only (not tunneled)
+      - "8555:8555/tcp"    # WebRTC
+      - "8555:8555/udp"
+    environment:
+      - CAMERA_RTSP_URL=${CAMERA_RTSP_URL:-}
+      - WEBRTC_HOST_IP=${WEBRTC_HOST_IP:-}
+    volumes:
+      - ./go2rtc:/config
+
+  web:
+    image: nginx:alpine
+    container_name: printer-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    environment:
+      - PRUSALINK_HOST=${PRUSALINK_HOST:-}
+      - PRUSALINK_API_KEY=${PRUSALINK_API_KEY:-}
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    depends_on:
+      - go2rtc
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: printer-cloudflared
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:-}
+    depends_on:
+      - web

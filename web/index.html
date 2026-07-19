@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- ABOUTME: Single-pane webpage showing the INDX printer camera via go2rtc.
+     ABOUTME: Relative /go2rtc/ and /printer/ URLs work on LAN and tunnel. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>"Luna" &mdash; Prusa Core One INDX</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #111; color: #eee; font-family: system-ui, sans-serif; }
+    body { display: flex; flex-direction: column; }
+    header { padding: 0.6rem 1rem; background: #1c1c1c; border-bottom: 1px solid #333; }
+    .title-row { display: flex; align-items: center; justify-content: space-between; }
+    header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    header .byline { font-size: 0.85rem; color: #888; }
+    #stats { margin-top: 0.25rem; font-size: 0.85rem; color: #aaa; }
+    main { flex: 1; min-height: 0; padding: 8px; box-sizing: border-box; }
+    main iframe { display: block; width: 100%; height: 100%; border: 1px solid #333; background: #000; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-row">
+      <h1>"Luna" &mdash; Prusa Core One INDX</h1>
+      <span class="byline">@erikbuild</span>
+    </div>
+    <div id="stats">loading&hellip;</div>
+  </header>
+  <main>
+    <iframe src="/go2rtc/stream.html?src=camera&mode=webrtc,mse,hls" allow="autoplay; fullscreen"></iframe>
+  </main>
+  <script>
+    // Poll the PrusaLink relay and render job stats in the header.
+    const stats = document.getElementById('stats');
+
+    function formatRemaining(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.round((seconds % 3600) / 60);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    async function refreshStats() {
+      try {
+        const statusRes = await fetch('/printer/status');
+        if (!statusRes.ok) throw new Error(statusRes.status);
+        const status = await statusRes.json();
+        let line = status.printer.state;
+        if (status.job) {
+          const jobRes = await fetch('/printer/job');
+          if (jobRes.status === 200) {
+            const job = await jobRes.json();
+            const name = job.file.display_name || job.file.name;
+            line = `${name} — ${Math.round(job.progress)}%`;
+            if (Number.isFinite(job.time_remaining)) {
+              line += ` — ${formatRemaining(job.time_remaining)} left`;
+            }
+          }
+        }
+        stats.textContent = line;
+      } catch {
+        stats.textContent = 'printer stats unavailable';
+      }
+    }
+
+    refreshStats();
+    setInterval(refreshStats, 60000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# ABOUTME: go2rtc config: pulls the printer's RTSP feed, re-encodes it to a
+# ABOUTME: clean H.264 stream, and serves it as WebRTC/MSE/HLS.
+api:
+  listen: ":1984"
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    - ${WEBRTC_HOST_IP}:8555
+
+streams:
+  # The printer camera emits a corrupt H.264 bitstream (its RTSP server drops
+  # RTP data at the source, even over TCP). WebRTC conceals the damage but MSE
+  # playback dies on it, so ffmpeg re-encodes the feed into a clean stream.
+  # ffmpeg runs on demand: no viewers, no CPU cost.
+  camera: ffmpeg:${CAMERA_RTSP_URL}#video=h264
