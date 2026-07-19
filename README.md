@@ -4,6 +4,8 @@ Shows the RTSP camera feed from a 3D Printer on a single-pane webpage, with a li
 
 Runs as a small Docker Compose stack on a local/home server. Viewable on the LAN and, through a Cloudflare Tunnel with Cloudflare Access in front, from anywhere.
 
+![screenshot](screenshot.png)
+
 ## Stack
 
 | Service | Image | Purpose |
